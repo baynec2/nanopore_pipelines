@@ -1,0 +1,168 @@
+---
+title: "Nanopore Run Report"
+author: Charlie Bayne
+date: today
+format: 
+  html:
+    theme: cosmo
+    toc: true
+    highlight-style: tango
+    echo: false
+    embed-resources: true
+execute:
+  cache: true
+  warning: false
+  message: false
+#params: 
+  #Nanopore_sequencing_run: "NP001"
+---
+
+# Details
+
+```{r}
+library(tidyverse)
+ggplot2::theme_set(ggprism::theme_prism())
+#for testing of the report
+directory = "/home/nanopore-catalyst/nanopore_assembly/NP001_all_reads_combined_assembly/"
+```
+
+This reports shows high level results from a nanopore experiment that was run in the Gonzalez lab at UCSD.
+
+The data reported in this file can be found here:
+
+```{r}
+print(directory)
+```
+
+# Nanopore Reads
+
+```{r}
+# Extracting all of the run metrics
+setwd(directory)
+sum_file_in_dir = list.files()[grepl("*.txt",list.files())]
+
+parse = function(file){
+    barcode = stringr::str_extract(file,"barcode[0-9]*")
+    out = readr::read_tsv(file,col_names = c("read_name","length")) %>% 
+    dplyr::mutate(barcode = barcode) %>% 
+      dplyr::select(barcode,everything())
+
+}
+all_metrics = purrr::map_df(sum_file_in_dir,parse)
+
+```
+
+Below you can find important metrics about the nanopore reads from this run.
+
+## Distribution of Reads Across Barcodes
+
+```{r}
+
+bp_sum = all_metrics %>% 
+  dplyr::group_by(barcode) %>% 
+  summarise(bp = sum(length)) %>% 
+  mutate(Gbp = bp/1e9)
+
+
+p1 = bp_sum %>% 
+  ggplot(aes(barcode,Gbp))+
+  geom_col()+
+  coord_flip()+
+  ggtitle("Bases Called per Barcode")
+
+p1
+
+```
+
+## Read Length Distribution
+
+```{r}
+barcode_sum = all_metrics %>% 
+  ggplot(aes(length))+
+  geom_histogram()+
+  scale_x_log10()+
+  ggtitle("Overall Read Length Distribution")
+
+barcode_sum
+
+```
+
+## Length Distribution of Reads by Barcode
+
+```{r,fig.height = 6, fig.width=8}
+barcode_sum = all_metrics %>% 
+  ggplot(aes(length))+
+  geom_histogram()+
+  facet_wrap(~barcode,scales = "free_y")+
+  scale_x_log10()+
+  ggtitle("Read Length By Barcode")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+barcode_sum
+
+```
+
+# Assembly
+
+For assembly, flye was used to assemble the nanopore reads into an assembly. Following assembly, a round of polishing was performed using medaka.
+
+## Metrics
+
+Below you can find important metrics from the run in tabular form. Included are number of contigs, whether they are circular or not, and the average coverage.
+
+```{r}
+flye_out_dir = paste0(directory,"flye_out")
+setwd(flye_out_dir)
+
+barcodes_in_dir = list.files()[grepl("barcode.*",list.files())]
+
+
+path_to_txts = paste0(flye_out_dir,"/",barcodes_in_dir,"/assembly_info.txt")
+
+parse = function(file){
+  barcode = stringr::str_extract(file,"barcode[0-9]*")
+  out = readr::read_delim(file,col_types = "cnnccncc") %>% 
+  dplyr::mutate(barcode = barcode) %>% 
+    dplyr::select(barcode,everything())
+  return(out)
+}
+
+txt_out = purrr::map_df(path_to_txts,parse)
+
+
+DT::datatable(txt_out)
+
+```
+
+Below is a plot showing how many contigs each assembly from barcode has and whether they were circular or not.
+
+```{r}
+sum = txt_out %>% 
+  group_by(barcode,circ.) %>% 
+  summarise(n = n())
+
+p1 = sum %>% 
+  ggplot2::ggplot(aes(barcode,n,fill = circ.))+
+  geom_col()+
+  coord_flip()+
+  xlab("number of contigs")+
+  ylab("barcodes")+
+  ggtitle("N contigs per barcode")+
+  scale_y_continuous(breaks= scales::pretty_breaks())
+
+
+p1
+```
+
+## Assembly Graphs
+
+Below you can find assembly graphs detailing how the contigs that were assembled. The assembly graph was output from flye and then visualized using bandage.
+
+The graphs are in ascending barcode order
+
+```{r,echo = TRUE}
+path_to_ag = paste0(flye_out_dir,"/",barcodes_in_dir,"/assembly_graph.jpg")
+
+path_to_ag
+knitr::include_graphics(path_to_ag)
+```
