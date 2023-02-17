@@ -456,12 +456,32 @@ sure.</p></li>
 ENONET errors upon trying to launch the software.</p></li>
 </ol>
 <ul>
-<li>This would be really great to get working as it seems Oxford
-Nanopore has a couple of well developed bioinformatic workflows already
-set up that would work great for my purposes. Unfortunately, the
-software doesn’t install properly. I am currently in communication with
-them to try to figure out what is the problem but it is out of my hands
-for the moment.</li>
+<li>The problem ended up being that I was running conda on my system and
+the curl command was in anaconda3/bin/curl, which was inaccessible to
+the software. To get around this, I just needed to install curl in
+/bin/, which could be done via sudo apt install curl</li>
+</ul>
+<ol start="4" style="list-style-type: decimal">
+<li>Installing Docker Desktop on my machine didn’t work due to a weird
+dependancy issue.</li>
+</ol>
+<ul>
+<li>The problem here was that Docker Desktop required a package that
+depends on a specific version of librados2. I fixed this by downgrading
+librados2, running sudo apt install librados2=15.2.12-0ubuntu0.20.04.1
+worked to this end.</li>
+</ul>
+<ol start="5" style="list-style-type: decimal">
+<li>Epi2meLabs fails running bacterial_genomes workflow because of what
+seems to be a permissions error:</li>
+</ol>
+<p>Command error: touch: cannot touch ‘.command.trace’: Permission
+denied</p>
+<ul>
+<li>I tried to grant permissions via the command chmod -R 777
+epi2melabs/ , but that didn’t fix the problem. I am currently in
+communications with them to try to figure out/ solve whatever is going
+on here.</li>
 </ul>
 </div>
 </div>

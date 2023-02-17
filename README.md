@@ -56,7 +56,18 @@ I'm not sure how the initial install got messed up but a complete re-install fix
 
 3. Epi2meLabs does not install properly, returns several spawn ENONET errors upon trying to launch the software. 
 
-* This would be really great to get working as it seems Oxford Nanopore has a couple of well developed bioinformatic workflows already set up that would work great for my purposes. Unfortunately, the software doesn't install properly. I am currently in communication with them to try to figure out what is the problem but it is out of my hands for the moment. 
+* The problem ended up being that I was running conda on my system and the curl command was in anaconda3/bin/curl, which was inaccessible to the software. To get around this, I just needed to install curl in /bin/, which could be done via sudo apt install curl
+
+4. Installing Docker Desktop on my machine didn't work due to a weird dependancy issue. 
+
+* The problem here was that Docker Desktop required a package that depends on a specific version of librados2. I fixed this by downgrading librados2, running sudo apt install librados2=15.2.12-0ubuntu0.20.04.1 worked to this end.
+
+5. Epi2meLabs fails running bacterial_genomes workflow because of what seems to be a permissions error: 
+
+Command error:
+  touch: cannot touch '.command.trace': Permission denied
+
+* I tried to grant permissions via the command chmod -R 777 epi2melabs/ , but that didn't fix the problem. I am currently in communications with them to try to figure out/ solve whatever is going on here. 
 
 
 
